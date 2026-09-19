@@ -5,7 +5,9 @@ const { computeBlastRadius } = require("../lib/blastRadius");
 
 const router = Router();
 
+// ──────────────────────────────────────────────────────────────
 // POST /api/actions/:id/evaluate
+// ──────────────────────────────────────────────────────────────
 
 /**
  * Loads the action by ID, computes blast radius from mock_environment,
@@ -16,7 +18,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Load the action
+    // Step 1: Load the action 
     const action = await prisma.action.findUnique({
       where: { id },
       include: { task: true },
@@ -32,7 +34,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       });
     }
 
-    // Load active policies
+    // Step 2: Load active policies 
     const policies = await prisma.policy.findMany({
       where: { isActive: true },
     });
@@ -43,7 +45,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       });
     }
 
-    // Compute blast radius from mock_environment
+    //  Step 3: Compute blast radius from mock_environment 
     const payload = action.payload || {};
     const blastRadius = await computeBlastRadius({
       action_type: action.type,
@@ -53,9 +55,10 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       self_reported_rows_affected: payload.self_reported_rows_affected ?? payload.self_reported_rows ?? 0,
     });
 
-    console.log(`Blast radius for action ${id}:`, JSON.stringify(blastRadius, null, 2));
+    console.log(`\n💥 Blast radius for action ${id}:`, JSON.stringify(blastRadius, null, 2));
 
-    // Build action data using blast radius (overrides LLM self-report)
+    // Step 4: Build action data using blast radius 
+    // Override self_reported_rows_affected with blast radius estimate
     const actionData = {
       action_type: action.type,
       target: payload.target,
@@ -71,15 +74,15 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       rowCount: blastRadius.table_row_count,
     };
 
-    console.log(`Evaluating action ${id}:`, JSON.stringify(actionData, null, 2));
+    console.log(`🔍 Evaluating action ${id}:`, JSON.stringify(actionData, null, 2));
 
-    // Run the policy engine
+    //Step 5: Run the policy engine 
     const decisions = evaluateAction(actionData, policies, context);
     const { finalDecision, triggeringPolicies } = aggregateDecisions(decisions);
 
-    console.log(`Result: ${finalDecision} (${triggeringPolicies.length} policies triggered)`);
+    console.log(`⚖️  Result: ${finalDecision} (${triggeringPolicies.length} policies triggered)`);
 
-    // Persist decisions + update action status
+    // Step 6: Persist decisions + update action status 
     const result = await prisma.$transaction(async (tx) => {
       // Write each policy decision
       const savedDecisions = [];
@@ -130,6 +133,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       return { savedDecisions, updatedAction };
     });
 
+    // ── Step 7: Return response 
     return res.status(200).json({
       success: true,
       action_id: id,
@@ -150,7 +154,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       })),
     });
   } catch (err) {
-    console.error("Action evaluation failed:", err.message);
+    console.error("  Action evaluation failed:", err.message);
     return res.status(500).json({
       error: "Action evaluation failed",
       details: process.env.NODE_ENV === "development" ? err.message : undefined,
@@ -158,6 +162,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
   }
 });
 
+// 
 // POST /api/actions/:id/execute
 
 /**
@@ -171,6 +176,7 @@ router.post("/actions/:id/execute", async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Load the action 
     const action = await prisma.action.findUnique({
       where: { id },
       include: { task: true },
@@ -186,7 +192,7 @@ router.post("/actions/:id/execute", async (req, res) => {
       });
     }
 
-    // Compute blast radius for execution
+    // Compute blast radius for execution 
     const payload = action.payload || {};
     const blastRadius = await computeBlastRadius({
       action_type: action.type,
@@ -196,11 +202,12 @@ router.post("/actions/:id/execute", async (req, res) => {
       self_reported_rows_affected: payload.self_reported_rows_affected ?? 0,
     });
 
-    console.log(`Executing action ${id}: ${action.type} on ${payload.target}`);
-    console.log(`  Estimated rows: ${blastRadius.estimated_rows}`);
+    console.log(`\n🚀 Executing action ${id}: ${action.type} on ${payload.target}`);
+    console.log(`   Estimated rows: ${blastRadius.estimated_rows}`);
 
     const startedAt = new Date();
 
+    // Execute in a transaction 
     const result = await prisma.$transaction(async (tx) => {
       let executionResult = {};
       let newRowCount = null;
@@ -210,12 +217,13 @@ router.post("/actions/:id/execute", async (req, res) => {
         ? await tx.mockEnvironment.findUnique({ where: { tableName: targetTable } })
         : null;
 
-      // Mutate mock_environment based on action type
+      // ── Mutate mock_environment based on action type 
       if (envRow) {
         const beforeRowCount = envRow.rowCount;
 
         switch (action.type) {
           case "DELETE": {
+            // Decrement row count by estimated affected rows
             newRowCount = Math.max(0, beforeRowCount - blastRadius.estimated_rows);
             await tx.mockEnvironment.update({
               where: { tableName: targetTable },
@@ -232,6 +240,7 @@ router.post("/actions/:id/execute", async (req, res) => {
           }
 
           case "DROP": {
+            // Set row count to 0 (table "dropped" — in mock, we zero it out)
             newRowCount = 0;
             await tx.mockEnvironment.update({
               where: { tableName: targetTable },
@@ -247,6 +256,7 @@ router.post("/actions/:id/execute", async (req, res) => {
           }
 
           case "UPDATE": {
+            // UPDATE doesn't change row count
             newRowCount = beforeRowCount;
             executionResult = {
               operation: "UPDATE",
@@ -258,6 +268,7 @@ router.post("/actions/:id/execute", async (req, res) => {
           }
 
           case "SCALE": {
+            // SCALE might add rows (for mock purposes, double the count)
             newRowCount = beforeRowCount * 2;
             await tx.mockEnvironment.update({
               where: { tableName: targetTable },
@@ -284,7 +295,7 @@ router.post("/actions/:id/execute", async (req, res) => {
         };
       }
 
-      // Write execution record
+      //  Write execution record 
       const execution = await tx.execution.create({
         data: {
           actionId: id,
@@ -295,13 +306,13 @@ router.post("/actions/:id/execute", async (req, res) => {
         },
       });
 
-      // Update action status
+      // Update action status to "executed" 
       const updatedAction = await tx.action.update({
         where: { id },
         data: { status: "executed", executedAt: new Date() },
       });
 
-      // Update task status
+      //  Update task status to "completed" 
       if (action.task) {
         await tx.task.update({
           where: { id: action.taskId },
@@ -309,11 +320,11 @@ router.post("/actions/:id/execute", async (req, res) => {
         });
       }
 
-      // Audit log — execution step
+      //  Audit log — execution step 
       await tx.auditLog.create({
         data: {
           entityType: "action",
-          entityId: id,
+          entityId: id, // action ID — so it appears in the action's audit trail
           operation: "UPDATE",
           actor: "executor",
           changes: {
@@ -332,7 +343,7 @@ router.post("/actions/:id/execute", async (req, res) => {
       return { execution, updatedAction, executionResult };
     });
 
-    console.log(`Execution ${result.execution.id} completed`);
+    console.log(` Execution ${result.execution.id} completed: ${JSON.stringify(result.executionResult)}`);
 
     return res.status(200).json({
       success: true,
@@ -343,7 +354,8 @@ router.post("/actions/:id/execute", async (req, res) => {
       result: result.executionResult,
     });
   } catch (err) {
-    console.error("Execution failed:", err.message);
+    // Record failed execution
+    console.error(" Execution failed:", err.message);
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -386,6 +398,7 @@ router.post("/actions/:id/execute", async (req, res) => {
   }
 });
 
+// 
 // PUT /api/actions/:id/patch-for-test (DEV ONLY)
 
 router.put("/actions/:id/patch-for-test", async (req, res) => {
