@@ -15,7 +15,7 @@ const router = Router();
 router.post("/tasks", async (req, res) => {
   const { user_request } = req.body;
 
-  // ── Validate input ────────────────────────────────────────
+  // Validate input
   if (!user_request || typeof user_request !== "string" || !user_request.trim()) {
     return res.status(400).json({
       error: "Missing or empty 'user_request' in request body",
@@ -23,12 +23,12 @@ router.post("/tasks", async (req, res) => {
   }
 
   try {
-    // ── Step 1: Call Gemini to parse the request ────────────
-    console.log(`\n📝 New task: "${user_request.substring(0, 80)}..."`);
+    // Call Gemini to parse the request
+    console.log(`New task: "${user_request.substring(0, 80)}..."`);
     const actionData = await parseTaskToAction(user_request.trim());
-    console.log("🤖 LLM returned:", JSON.stringify(actionData, null, 2));
+    console.log("LLM returned:", JSON.stringify(actionData, null, 2));
 
-    // ── Step 2: Create Task + Action in a transaction ───────
+    // Create Task + Action in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create the task
       const task = await tx.task.create({
@@ -58,7 +58,7 @@ router.post("/tasks", async (req, res) => {
         },
       });
 
-      // Create an audit log entry
+      // Audit log — task creation (proposal step)
       await tx.auditLog.create({
         data: {
           entityType: "task",
@@ -66,6 +66,7 @@ router.post("/tasks", async (req, res) => {
           operation: "CREATE",
           actor: "user",
           changes: {
+            step: "proposal",
             user_request: user_request.trim(),
             action_type: actionData.action_type,
             target: actionData.target,
@@ -73,12 +74,32 @@ router.post("/tasks", async (req, res) => {
         },
       });
 
+      // Audit log — action creation (plan step)
+      await tx.auditLog.create({
+        data: {
+          entityType: "action",
+          entityId: action.id,
+          operation: "CREATE",
+          actor: "planner_agent",
+          changes: {
+            step: "plan",
+            task_id: task.id,
+            action_type: actionData.action_type,
+            target: actionData.target,
+            condition: actionData.condition,
+            environment: actionData.environment,
+            self_reported_rows: actionData.self_reported_rows_affected ?? actionData.self_reported_rows,
+            self_reported_risk: actionData.self_reported_risk,
+          },
+        },
+      });
+
       return { task, action };
     });
 
-    console.log(`✅ Task ${result.task.id} created with action ${result.action.id}`);
+    console.log(`Task ${result.task.id} created with action ${result.action.id}`);
 
-    // ── Step 3: Return response ─────────────────────────────
+    // Return response
     return res.status(201).json({
       success: true,
       task: {
@@ -97,7 +118,7 @@ router.post("/tasks", async (req, res) => {
       llm_parsed: actionData,
     });
   } catch (err) {
-    console.error("❌ Task creation failed:", err.message);
+    console.error("Task creation failed:", err.message);
 
     // Distinguish LLM parse errors from DB errors
     const isParseError = err.message.includes("Failed to parse LLM JSON") ||

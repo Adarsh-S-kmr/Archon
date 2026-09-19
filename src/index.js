@@ -1,34 +1,40 @@
 require("dotenv").config({ quiet: true });
 
-const express = require("express");
-const cors = require("cors");
+// module imports
+const express = require("express"); // HTTP webserver
+const cors = require("cors"); //Cross origin Resource Sharing
+
 const healthRouter = require("./routes/health");
 const tasksRouter = require("./routes/tasks");
+const actionsRouter = require("./routes/actions");
+const auditLogsRouter = require("./routes/auditLogs");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// ── Middleware ────────────────────────────────────────────────
+// Middleware 
 app.use(cors());
 app.use(express.json());
 
-// ── Routes ───────────────────────────────────────────────────
+// Routes 
 app.use("/api", healthRouter);
 app.use("/api", tasksRouter);
+app.use("/api", actionsRouter);
+app.use("/api", auditLogsRouter);
 
-// ── 404 fallback ─────────────────────────────────────────────
+// 404 fallback
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// ── Global error handler ─────────────────────────────────────
+// Global error handler
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
 
-// ── Start ────────────────────────────────────────────────────
+// Start server
 app.listen(PORT, () => {
-  console.log(`\n🚀 ARCHON server running on http://localhost:${PORT}`);
-  console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+  console.log(`\n ARCHON server running on http://localhost:${PORT}`);
+  console.log(` Health check: http://localhost:${PORT}/api/health\n`);
 });

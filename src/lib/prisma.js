@@ -1,10 +1,10 @@
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("@prisma/client"); //singleton client instance to manage pooling connection with PostgreSQL
 
-// Singleton pattern — prevents hot-reload from spawning extra connections
-const globalForPrisma = globalThis;
+const globalForPrisma = globalThis; // prevents hot-reload from spawning extra connections
 
 const prisma =
-  globalForPrisma.__prisma ||
+  globalForPrisma.__prisma // use this if already has a prisma client 
+  ||
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });

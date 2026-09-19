@@ -3,16 +3,17 @@
 
 generator client {
   provider = "prisma-client-js"
-}
+} 
+
+//client config
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// ──────────────────────────────────────────────
 // Core Models
-// ──────────────────────────────────────────────
+
 
 model Task {
   id          String   @id @default(uuid())
