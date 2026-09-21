@@ -55,7 +55,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
       self_reported_rows_affected: payload.self_reported_rows_affected ?? payload.self_reported_rows ?? 0,
     });
 
-    console.log(`\n💥 Blast radius for action ${id}:`, JSON.stringify(blastRadius, null, 2));
+    console.log(`\n Blast radius for action ${id}:`, JSON.stringify(blastRadius, null, 2));
 
     // Step 4: Build action data using blast radius 
     // Override self_reported_rows_affected with blast radius estimate
@@ -80,7 +80,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
     const decisions = evaluateAction(actionData, policies, context);
     const { finalDecision, triggeringPolicies } = aggregateDecisions(decisions);
 
-    console.log(`⚖️  Result: ${finalDecision} (${triggeringPolicies.length} policies triggered)`);
+    console.log(`  Result: ${finalDecision} (${triggeringPolicies.length} policies triggered)`);
 
     // Step 6: Persist decisions + update action status 
     const result = await prisma.$transaction(async (tx) => {
@@ -92,7 +92,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
             data: {
               policyId: d.policyId,
               actionId: id,
-              decision: d.decision === "REQUIRE_APPROVAL" ? "ESCALATE" : d.decision === "BLOCK" ? "DENY" : "ALLOW",
+              decision: d.decision,
               reason: d.reason,
             },
           });
@@ -111,6 +111,14 @@ router.post("/actions/:id/evaluate", async (req, res) => {
         where: { id },
         data: { status: statusMap[finalDecision] || "pending" },
       });
+
+      // Update parent task status if action was blocked
+      if (finalDecision === "BLOCK" && action.taskId) {
+        await tx.task.update({
+          where: { id: action.taskId },
+          data: { status: "blocked" },
+        });
+      }
 
       // Audit log — evaluation step
       await tx.auditLog.create({

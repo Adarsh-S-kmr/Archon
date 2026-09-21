@@ -71,7 +71,7 @@ do not return 0 unless the condition genuinely matches nothing.`;
       break;
     } catch (err) {
       if (err.message?.includes("503") && attempt < 3) {
-        console.warn(`⚠️ Gemini 503 high demand spike, retrying (attempt ${attempt}/3)...`);
+        console.warn(` Gemini 503 high demand spike, retrying (attempt ${attempt}/3)...`);
         await new Promise((r) => setTimeout(r, attempt * 1000));
       } else {
         throw err;

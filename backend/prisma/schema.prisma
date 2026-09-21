@@ -14,6 +14,16 @@ datasource db {
 
 // Core Models
 
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("operator") // operator | approver
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users_auth")
+}
+
 
 model Task {
   id          String   @id @default(uuid())

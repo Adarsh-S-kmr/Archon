@@ -1,9 +1,39 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log(" Seeding database...\n");
+
+  // Test Users
+  console.log("  → users_auth");
+
+  const operatorHash = await bcrypt.hash("password123", 10);
+  const approverHash = await bcrypt.hash("password123", 10);
+
+  await prisma.user.upsert({
+    where: { email: "operator@test.com" },
+    update: { passwordHash: operatorHash, role: "operator" },
+    create: {
+      email: "operator@test.com",
+      passwordHash: operatorHash,
+      role: "operator",
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "approver@test.com" },
+    update: { passwordHash: approverHash, role: "approver" },
+    create: {
+      email: "approver@test.com",
+      passwordHash: approverHash,
+      role: "approver",
+    },
+  });
+
+  console.log("    operator@test.com (role: operator, password: password123)");
+  console.log("    approver@test.com (role: approver, password: password123)");
 
   // Mock Environment
   console.log("  → mock_environment");
