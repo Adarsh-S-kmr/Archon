@@ -44,7 +44,7 @@ function ActionTag({ type }) {
 function PlannerStep({ data, isLatest }) {
   const isDirect = Boolean(data.is_direct_json);
   return (
-    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all ${isLatest ? "animate-fade-in" : ""}`}>
+    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <div className="flex items-center justify-between mb-1">
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">
           {isDirect ? "01 // DIRECT PAYLOAD" : "01 // PLANNER"}
@@ -83,7 +83,7 @@ function PlannerStep({ data, isLatest }) {
 function PolicyStep({ data, isLatest }) {
   const { decisions, finalDecision, blastRadius } = data;
   return (
-    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all ${isLatest ? "animate-fade-in" : ""}`}>
+    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <span className="font-mono text-[10px] text-zinc-400 block mb-1 uppercase tracking-wider">
         02 // POLICY ENGINE &amp; BLAST RADIUS
       </span>
@@ -132,7 +132,7 @@ function PolicyStep({ data, isLatest }) {
 function ExecutorStep({ data, isLatest }) {
   const { executed, skippedReason, result } = data;
   return (
-    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all ${isLatest ? "animate-fade-in" : ""}`}>
+    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <span className="font-mono text-[10px] text-zinc-400 block mb-1 uppercase tracking-wider">
         03 // EXECUTOR
       </span>
@@ -141,12 +141,29 @@ function ExecutorStep({ data, isLatest }) {
       </h4>
       <div className="font-mono text-xs">
         {executed ? (
-          <p className="text-emerald-700 font-medium">
-            ✓ Database operation committed safely to target cluster.
-            {result && <span className="text-zinc-500 block text-[11px] mt-1 font-mono">Payload: {JSON.stringify(result).substring(0, 100)}</span>}
-          </p>
+          <div className="space-y-2">
+            <p className="text-emerald-700 font-medium">
+              ✓ Database operation committed safely to target cluster.
+            </p>
+            {result && (
+              <div className="pt-2 border-t border-zinc-200/60 font-mono text-[11px] text-zinc-600 space-y-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {result.operation && <span>op: <strong className="text-zinc-900">{result.operation}</strong></span>}
+                  {result.target && <span>target: <strong className="text-zinc-900">{result.target}</strong></span>}
+                  {result.rows_deleted !== undefined && <span>deleted: <strong className="text-rose-600">-{Number(result.rows_deleted).toLocaleString()}</strong></span>}
+                  {result.rows_affected !== undefined && <span>affected: <strong className="text-zinc-900">{Number(result.rows_affected).toLocaleString()}</strong></span>}
+                  {result.rows_before !== undefined && result.rows_after !== undefined && (
+                    <span>rows: <strong className="text-zinc-800">{Number(result.rows_before).toLocaleString()} &rarr; {Number(result.rows_after).toLocaleString()}</strong></span>
+                  )}
+                </div>
+                <div className="text-[10px] text-zinc-400 break-all font-mono pt-0.5">
+                  payload: {JSON.stringify(result)}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          <p className="text-rose-700 font-medium">
+          <p className="text-rose-700 font-medium break-words">
             ✕ Execution halted — {skippedReason}
           </p>
         )}
@@ -155,18 +172,65 @@ function ExecutorStep({ data, isLatest }) {
   );
 }
 
-function AuditStep({ isLatest }) {
+function AuditStep({ data, isLatest }) {
+  const trail = data?.trail || [];
+
   return (
-    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all ${isLatest ? "animate-fade-in" : ""}`}>
-      <span className="font-mono text-[10px] text-zinc-400 block mb-1 uppercase tracking-wider">
-        04 // AUDIT LOG
-      </span>
+    <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">
+          04 // AUDIT LOG
+        </span>
+        <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold">
+          {trail.length > 0 ? `${trail.length} ENTRIES RECORDED` : "COMMITTED"}
+        </span>
+      </div>
       <h4 className="font-mono text-xs font-bold text-zinc-900 mb-1.5">
-        Audit Trail Recorded
+        Immutable Audit Trail Recorded
       </h4>
-      <p className="font-mono text-xs text-zinc-700">
-        ✓ Plan, policy evaluation, and execution status recorded to audit log.
-      </p>
+
+      {trail.length > 0 ? (
+        <div className="font-mono text-xs space-y-2 mt-1.5">
+          <div className="divide-y divide-zinc-200/60 border border-zinc-200/80 rounded-md bg-white p-2 text-[11px] shadow-2xs">
+            {trail.map((entry, idx) => {
+              const stepName = entry.changes?.step || entry.operation;
+              return (
+                <div key={idx} className={`flex items-center justify-between py-1 ${idx > 0 ? "pt-1.5" : ""}`}>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-[10px] font-bold text-zinc-900 uppercase px-1 py-0.2 bg-zinc-100 border border-zinc-200 rounded">
+                      {entry.actor}
+                    </span>
+                    <span className="text-zinc-700 truncate">
+                      {stepName}
+                      {entry.changes?.evaluation && (
+                        <span className={`ml-1 font-semibold ${entry.changes.evaluation === "ALLOW" ? "text-emerald-700" : "text-rose-700"}`}>
+                          ({entry.changes.evaluation})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-zinc-400 shrink-0 ml-2">
+                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between pt-0.5 text-[10px] text-zinc-400">
+            <span className="truncate">Action ID: {data?.actionId?.substring(0, 16)}...</span>
+            <Link to="/audit" className="text-zinc-900 underline font-medium hover:text-zinc-700 shrink-0">
+              View Audit Log &rarr;
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="font-mono text-xs text-zinc-700 space-y-1">
+          <p className="text-emerald-700 font-medium">✓ Plan, evaluation &amp; execution written to audit log.</p>
+          <Link to="/audit" className="text-zinc-900 underline text-[11px] inline-block">
+            Inspect in Audit Log &rarr;
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -318,7 +382,24 @@ export default function TaskConsole() {
         ]);
       }
 
-      setLogSteps((prev) => [...prev, { type: "audit" }]);
+      let auditTrail = [];
+      try {
+        const trailRes = await apiFetch(`/api/audit-logs/${actionId}/trail`);
+        auditTrail = trailRes.trail || [];
+      } catch {
+        // Fallback if trail not yet written
+      }
+
+      setLogSteps((prev) => [
+        ...prev,
+        {
+          type: "audit",
+          data: {
+            actionId,
+            trail: auditTrail,
+          },
+        },
+      ]);
 
       setInput("");
       await Promise.all([loadRecentTasks(), loadEnvironment()]);
@@ -494,7 +575,7 @@ export default function TaskConsole() {
                 case "executor":
                   return <ExecutorStep key={i} data={step.data} isLatest={isLatest} />;
                 case "audit":
-                  return <AuditStep key={i} isLatest={isLatest} />;
+                  return <AuditStep key={i} data={step.data} isLatest={isLatest} />;
                 case "stopped":
                   return (
                     <div key={i} className="border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 flex items-center gap-2 font-mono text-xs text-zinc-500">
