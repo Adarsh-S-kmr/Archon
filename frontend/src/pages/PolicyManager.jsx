@@ -110,7 +110,7 @@ export default function PolicyManager() {
             Deterministic Guardrails
           </span>
           <h2 className="serif-title text-4xl font-normal text-zinc-900">
-            Policy Enforcement Engine
+            Policies
           </h2>
         </div>
       </div>
@@ -147,13 +147,12 @@ export default function PolicyManager() {
                       </td>
                       <td className="py-4">
                         <span
-                          className={`px-2 py-0.5 rounded-md font-bold text-[10px] border ${
-                            effect === "BLOCK"
+                          className={`px-2 py-0.5 rounded-md font-bold text-[10px] border ${effect === "BLOCK"
                               ? "text-rose-700 bg-rose-50 border-rose-200"
                               : effect === "REQUIRE_APPROVAL"
-                              ? "text-amber-700 bg-amber-50 border-amber-200"
-                              : "text-zinc-700 bg-zinc-100 border-zinc-200"
-                          }`}
+                                ? "text-amber-700 bg-amber-50 border-amber-200"
+                                : "text-zinc-700 bg-zinc-100 border-zinc-200"
+                            }`}
                         >
                           {effect}
                         </span>
