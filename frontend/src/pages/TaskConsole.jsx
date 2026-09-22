@@ -193,6 +193,19 @@ export default function TaskConsole() {
   const [envTables, setEnvTables] = useState([]);
   const [lastAffectedTable, setLastAffectedTable] = useState(null);
   const logRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  function stopEvaluation() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setRunning(false);
+    setLogSteps((prev) => [
+      ...prev.filter((s) => s.type !== "loading"),
+      { type: "stopped" },
+    ]);
+  }
 
   useEffect(() => {
     loadRecentTasks();
@@ -226,6 +239,9 @@ export default function TaskConsole() {
   async function runPipeline() {
     if (!input.trim() || running) return;
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setRunning(true);
     setLogSteps([]);
     setError(null);
@@ -236,6 +252,7 @@ export default function TaskConsole() {
       const taskData = await apiFetch("/api/tasks", {
         method: "POST",
         body: { user_request: input.trim() },
+        signal: controller.signal,
       });
 
       const actionId = taskData.action?.id;
@@ -247,6 +264,7 @@ export default function TaskConsole() {
       setLogSteps((prev) => [...prev, { type: "loading", label: "Policy Engine" }]);
       const evalData = await apiFetch(`/api/actions/${actionId}/evaluate`, {
         method: "POST",
+        signal: controller.signal,
       });
 
       const finalDecision = evalData.final_decision || evalData.decision;
@@ -266,6 +284,7 @@ export default function TaskConsole() {
         setLogSteps((prev) => [...prev, { type: "loading", label: "Executor" }]);
         const execData = await apiFetch(`/api/actions/${actionId}/execute`, {
           method: "POST",
+          signal: controller.signal,
         });
         executed = true;
         execResult = execData.result || null;
@@ -304,10 +323,14 @@ export default function TaskConsole() {
       setInput("");
       await Promise.all([loadRecentTasks(), loadEnvironment()]);
     } catch (err) {
+      if (err.name === "AbortError" || controller.signal.aborted) {
+        return;
+      }
       setError({ message: err.message, status: err.status || 0 });
       setLogSteps((prev) => prev.filter((s) => s.type !== "loading"));
     } finally {
       setRunning(false);
+      abortControllerRef.current = null;
     }
   }
 
@@ -332,7 +355,7 @@ export default function TaskConsole() {
         <div className="flex items-center space-x-2.5">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-zinc-600">Target Cluster:</span>
-          <span className="text-zinc-900 font-bold">AWS us-east-1 (PostgreSQL Production)</span>
+          <span className="text-zinc-900 font-bold">(PostgreSQL Production)</span>
         </div>
         <Link
           to="/database"
@@ -402,16 +425,28 @@ export default function TaskConsole() {
             disabled={running}
             className="flex-grow bg-white border border-zinc-200 rounded-lg px-4 py-3 font-mono text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all disabled:opacity-50"
           />
-          <button
-            onClick={runPipeline}
-            disabled={running || !input.trim()}
-            className="bg-zinc-900 text-white rounded-lg font-mono text-xs uppercase font-medium px-6 py-3 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all tracking-wider flex items-center justify-center space-x-2 shadow-sm shrink-0 cursor-pointer"
-          >
-            <span>{running ? "Evaluating..." : "Execute"}</span>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
+          {running ? (
+            <button
+              type="button"
+              onClick={stopEvaluation}
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-mono text-xs uppercase font-medium px-6 py-3 transition-all tracking-wider flex items-center justify-center space-x-2 shadow-sm shrink-0 cursor-pointer"
+              title="Stop evaluation"
+            >
+              <span className="w-2.5 h-2.5 bg-white rounded-xs inline-block" />
+              <span>Stop</span>
+            </button>
+          ) : (
+            <button
+              onClick={runPipeline}
+              disabled={!input.trim()}
+              className="bg-zinc-900 text-white rounded-lg font-mono text-xs uppercase font-medium px-6 py-3 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all tracking-wider flex items-center justify-center space-x-2 shadow-sm shrink-0 cursor-pointer"
+            >
+              <span>Execute</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -442,10 +477,10 @@ export default function TaskConsole() {
         <div className="border border-zinc-200 bg-white rounded-xl p-6 shadow-xs space-y-6" ref={logRef}>
           <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
             <span className="font-mono text-xs uppercase text-zinc-800 font-bold">
-              Live Governance Pipeline DAG
+              Live Governance Pipeline
             </span>
             <span className="font-mono text-xs text-zinc-900 uppercase font-bold bg-zinc-100 px-2.5 py-1 rounded-md">
-              {running ? "Evaluating..." : "Completed"}
+              {running ? "Evaluating..." : logSteps.some((s) => s.type === "stopped") ? "Halted" : "Completed"}
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -460,6 +495,13 @@ export default function TaskConsole() {
                   return <ExecutorStep key={i} data={step.data} isLatest={isLatest} />;
                 case "audit":
                   return <AuditStep key={i} isLatest={isLatest} />;
+                case "stopped":
+                  return (
+                    <div key={i} className="border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 flex items-center gap-2 font-mono text-xs text-zinc-500">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>Evaluation stopped by operator.</span>
+                    </div>
+                  );
                 case "loading":
                   return <SpinnerDot key={i} />;
                 default:

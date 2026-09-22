@@ -66,12 +66,8 @@ export default function DatabaseViewer() {
           </span>
           <div className="flex items-center gap-3">
             <h2 className="serif-title text-4xl font-normal text-zinc-900">
-              Database Schema &amp; Live Health
+              Database Schema
             </h2>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live &amp; Protected
-            </span>
           </div>
           <p className="text-xs font-mono text-zinc-500 mt-1">
             {db_type} &middot; Environment: <span className="font-bold text-zinc-800 uppercase">{environment}</span> &middot; Governed by ARCHON Interceptor
@@ -129,9 +125,8 @@ export default function DatabaseViewer() {
           <span className="text-[10px] text-zinc-400 uppercase tracking-wider block mb-1">Backup Health</span>
           <div className="flex items-center gap-1.5 mt-1">
             <span
-              className={`w-2 h-2 rounded-full ${
-                summary?.all_backups_healthy ? "bg-emerald-500" : "bg-amber-500"
-              }`}
+              className={`w-2 h-2 rounded-full ${summary?.all_backups_healthy ? "bg-emerald-500" : "bg-amber-500"
+                }`}
             />
             <p className="text-base font-bold text-zinc-900">
               {summary?.all_backups_healthy ? "100% Fresh" : "Mixed (Stale)"}
@@ -185,17 +180,16 @@ export default function DatabaseViewer() {
                   {/* Backup indicator */}
                   <div className="text-right hidden sm:block">
                     <span
-                      className={`inline-block px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider rounded-md border ${
-                        tbl.backup_is_fresh
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}
+                      className={`inline-block px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider rounded-md border ${tbl.backup_is_fresh
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                        }`}
                     >
                       {tbl.backup_age_hours === 0
                         ? "Just now"
                         : tbl.backup_age_hours < 24
-                        ? `${tbl.backup_age_hours}h ago`
-                        : `${Math.round(tbl.backup_age_hours / 24)}d ago (Stale)`}
+                          ? `${tbl.backup_age_hours}h ago`
+                          : `${Math.round(tbl.backup_age_hours / 24)}d ago (Stale)`}
                     </span>
                   </div>
 
@@ -296,13 +290,12 @@ export default function DatabaseViewer() {
                             <div className="flex items-center gap-2">
                               {op.decision ? (
                                 <span
-                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                                    op.decision === "ALLOW"
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : op.decision === "BLOCK"
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${op.decision === "ALLOW"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : op.decision === "BLOCK"
                                       ? "bg-rose-50 text-rose-700 border-rose-200"
                                       : "bg-amber-50 text-amber-700 border-amber-200"
-                                  }`}
+                                    }`}
                                 >
                                   {op.decision}
                                 </span>
