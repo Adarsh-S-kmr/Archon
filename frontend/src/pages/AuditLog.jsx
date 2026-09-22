@@ -53,7 +53,7 @@ export default function AuditLog() {
             Compliance &amp; Traceability
           </span>
           <h2 className="serif-title text-4xl font-normal text-zinc-900">
-            Immutable Audit Ledger
+            Audit Ledger
           </h2>
         </div>
         {/* Filters */}
