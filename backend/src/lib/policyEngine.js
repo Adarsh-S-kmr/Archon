@@ -22,6 +22,9 @@ const BACKUP_FRESHNESS_HOURS = 24;
 // Hardcoded allowed targets — stub for scope-violation policy until RBAC exists
 const ALLOWED_TARGETS = ["users", "orders", "sessions", "logs", "products"];
 
+// Strictly permitted database action types
+const ALLOWED_ACTION_TYPES = ["SELECT", "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE"];
+
 // Core evaluator
 
 /**
@@ -33,6 +36,20 @@ const ALLOWED_TARGETS = ["users", "orders", "sessions", "logs", "products"];
  * @returns {object[]} Array of { policyId, policyName, decision, reason }
  */
 function evaluateAction(action, policies, context = {}) {
+  const actionType = String(action.action_type || "").toUpperCase().trim();
+
+  // Pre-check: Block unknown or unauthorized action verbs (e.g. "RUN", "EXEC", "SHUTDOWN")
+  if (!ALLOWED_ACTION_TYPES.includes(actionType)) {
+    return [
+      {
+        policyId: null,
+        policyName: "unsupported-action-type",
+        decision: "BLOCK",
+        reason: `Operation verb "${action.action_type}" is not an authorized database action [${ALLOWED_ACTION_TYPES.join(", ")}]`,
+      },
+    ];
+  }
+
   const decisions = [];
 
   for (const policy of policies) {
@@ -226,4 +243,5 @@ module.exports = {
   DESTRUCTIVE_TYPES,
   MAX_ROWS_BEFORE_BLOCK,
   ALLOWED_TARGETS,
+  ALLOWED_ACTION_TYPES,
 };
