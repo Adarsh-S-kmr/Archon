@@ -18,27 +18,27 @@ const prisma = require("./prisma");
 
 const CONDITION_PATTERNS = [
   // Very selective — single-row or small-set lookups
-  { regex: /\bid\s*=\s*/i,                          fraction: 0.001 },
-  { regex: /\bemail\s*=\s*/i,                        fraction: 0.001 },
-  { regex: /\bLIMIT\s+\d+/i,                         fraction: 0.01  },
+  { regex: /\bid\s*=\s*/i, fraction: 0.001 },
+  { regex: /\bemail\s*=\s*/i, fraction: 0.001 },
+  { regex: /\bLIMIT\s+\d+/i, fraction: 0.01 },
 
   // Medium selectivity — status/flag filters
-  { regex: /\bstatus\s*=\s*/i,                       fraction: 0.15  },
-  { regex: /\bis_active\s*=\s*(false|0|'false')/i,   fraction: 0.10  },
-  { regex: /\bis_temp\s*=\s*/i,                      fraction: 0.05  },
-  { regex: /\brole\s*=\s*/i,                         fraction: 0.10  },
+  { regex: /\bstatus\s*=\s*/i, fraction: 0.15 },
+  { regex: /\bis_active\s*=\s*(false|0|'false')/i, fraction: 0.10 },
+  { regex: /\bis_temp\s*=\s*/i, fraction: 0.05 },
+  { regex: /\brole\s*=\s*/i, fraction: 0.10 },
 
   // Date-range filters — typically larger sets
   { regex: /\b(created_at|updated_at|last_login|expires_at)\s*[<>]/i, fraction: 0.25 },
-  { regex: /\bINTERVAL\b/i,                          fraction: 0.20  },
-  { regex: /\bNOW\(\)/i,                             fraction: 0.20  },
+  { regex: /\bINTERVAL\b/i, fraction: 0.20 },
+  { regex: /\bNOW\(\)/i, fraction: 0.20 },
 
   // Inequality — moderate selectivity
-  { regex: /\b(price|count|amount)\s*[<>]/i,         fraction: 0.15  },
+  { regex: /\b(price|count|amount)\s*[<>]/i, fraction: 0.15 },
 
   // IS NULL — usually small fraction
-  { regex: /\bIS\s+NULL\b/i,                         fraction: 0.05  },
-  { regex: /\bIS\s+NOT\s+NULL\b/i,                   fraction: 0.90  },
+  { regex: /\bIS\s+NULL\b/i, fraction: 0.05 },
+  { regex: /\bIS\s+NOT\s+NULL\b/i, fraction: 0.90 },
 ];
 
 /**
@@ -51,6 +51,12 @@ const CONDITION_PATTERNS = [
 function estimateConditionSelectivity(condition) {
   if (!condition || condition.trim() === "" || condition.trim().toLowerCase() === "null") {
     return 1.0; // No condition = all rows
+  }
+
+  const trimmed = condition.trim().toLowerCase();
+
+  if (/^(1\s*=\s*1|true|0\s*=\s*0|'a'\s*=\s*'a')$/i.test(trimmed)) {
+    return 1.0;
   }
 
   for (const { regex, fraction } of CONDITION_PATTERNS) {
