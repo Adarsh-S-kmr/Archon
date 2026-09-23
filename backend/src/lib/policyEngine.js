@@ -108,14 +108,19 @@ function evaluateSinglePolicy(action, policy, context) {
  */
 function evaluateUnboundedDestructive(action, policy) {
   const isDestructive = DESTRUCTIVE_TYPES.includes(action.action_type);
-  const hasNoCondition = !action.condition || action.condition.trim() === "" || action.condition.trim().toLowerCase() === "null";
 
-  if (isDestructive && hasNoCondition) {
+  const conditionStr = (action.condition || "").trim().toLowerCase();
+
+  const hasNoCondition = !action.condition || action.condition.trim() === "" || action.condition.trim().toLowerCase() === "null";
+  const isTautology = /^(1\s*=\s*1|all|true|0\s*=\s*0|'a'\s*=\s*'a')$/i.test(conditionStr);
+
+
+  if (isDestructive && hasNoCondition || isTautology) {
     return {
       policyId: policy.id,
       policyName: policy.name,
       decision: "BLOCK",
-      reason: `${action.action_type} on "${action.target}" has no WHERE condition — unbounded destructive operations are blocked`,
+      reason: `${action.action_type} on "${action.target}" ${isTautology ? "uses an unbounded condition (1=1)" : "has no WHERE condition"} — full-table destructive operations are blocked`,
     };
   }
 
