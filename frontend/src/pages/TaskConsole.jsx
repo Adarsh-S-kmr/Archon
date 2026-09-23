@@ -47,7 +47,7 @@ function PlannerStep({ data, isLatest }) {
     <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <div className="flex items-center justify-between mb-1">
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">
-          {isDirect ? "01 // DIRECT PAYLOAD" : "01 // PLANNER"}
+          {isDirect ? " DIRECT PAYLOAD" : " PLANNER"}
         </span>
         {isDirect && (
           <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-200 rounded font-medium">
@@ -85,7 +85,7 @@ function PolicyStep({ data, isLatest }) {
   return (
     <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <span className="font-mono text-[10px] text-zinc-400 block mb-1 uppercase tracking-wider">
-        02 // POLICY ENGINE &amp; BLAST RADIUS
+        POLICY ENGINE &amp; BLAST RADIUS
       </span>
       <h4 className="font-mono text-xs font-bold text-zinc-900 mb-1.5">
         Deterministic Rules &amp; Impact Calculation
@@ -134,7 +134,7 @@ function ExecutorStep({ data, isLatest }) {
   return (
     <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <span className="font-mono text-[10px] text-zinc-400 block mb-1 uppercase tracking-wider">
-        03 // EXECUTOR
+        EXECUTOR
       </span>
       <h4 className="font-mono text-xs font-bold text-zinc-900 mb-1.5">
         Database Commit Transaction
@@ -179,7 +179,7 @@ function AuditStep({ data, isLatest }) {
     <div className={`border border-zinc-200 bg-zinc-50/50 rounded-lg p-3.5 transition-all overflow-hidden break-words ${isLatest ? "animate-fade-in" : ""}`}>
       <div className="flex items-center justify-between mb-1">
         <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">
-          04 // AUDIT LOG
+          AUDIT LOG
         </span>
         <span className="font-mono text-[9px] uppercase px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold">
           {trail.length > 0 ? `${trail.length} ENTRIES RECORDED` : "COMMITTED"}
@@ -248,6 +248,8 @@ function SpinnerDot() {
   );
 }
 
+
+// main function
 export default function TaskConsole() {
   const [input, setInput] = useState("");
   const [running, setRunning] = useState(false);
@@ -309,7 +311,7 @@ export default function TaskConsole() {
     setRunning(true);
     setLogSteps([]);
     setError(null);
-
+    // call the api/tasks
     try {
       const isDirectInput = input.trim().startsWith("{") || input.trim().startsWith("```");
       setLogSteps([{ type: "loading", label: isDirectInput ? "Direct Payload" : "Planner Agent" }]);

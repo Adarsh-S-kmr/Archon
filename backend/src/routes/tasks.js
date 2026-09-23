@@ -171,10 +171,10 @@ router.post("/tasks", async (req, res) => {
         is_direct_json: true,
       };
 
-      console.log("⚡ [Direct JSON Mode] Bypassed Gemini LLM. Direct Action Data:", JSON.stringify(actionData));
+      console.log("[Direct JSON Mode] Bypassed Gemini LLM. Direct Action Data:", JSON.stringify(actionData));
     } else {
       // Call Gemini to parse natural language request
-      console.log(`🤖 [Gemini LLM Planner] Parsing task: "${user_request.substring(0, 80)}..."`);
+      console.log(` [Gemini LLM Planner] Parsing task: "${user_request.substring(0, 80)}..."`);
       actionData = await parseTaskToAction(trimmed);
       actionData.is_direct_json = false;
     }
