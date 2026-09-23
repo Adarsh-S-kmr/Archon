@@ -2,7 +2,6 @@
   <img src="docs/archon-banner.png" alt="Archon Banner" width="800" />
 </p>
 
-<h1 align="center">ARCHON</h1>
 <h3 align="center">Zero-Trust Database Governance Firewall for Autonomous AI Agents</h3>
 
 <p align="center">
