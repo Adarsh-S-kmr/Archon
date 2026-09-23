@@ -5,7 +5,10 @@ const prisma = require("../lib/prisma");
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Server refusing to start with insecure defaults.");
+}
 const JWT_EXPIRES_IN = "24h";
 
 /**

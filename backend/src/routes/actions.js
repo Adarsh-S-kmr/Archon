@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const prisma = require("../lib/prisma");
+const { requireAuth } = require("../middleware/auth");
 const { evaluateAction, aggregateDecisions } = require("../lib/policyEngine");
 const { computeBlastRadius } = require("../lib/blastRadius");
 
@@ -14,7 +15,7 @@ const router = Router();
  * loads all active policies, runs evaluateAction() using real row counts,
  * writes decisions to policy_decisions, updates action status.
  */
-router.post("/actions/:id/evaluate", async (req, res) => {
+router.post("/actions/:id/evaluate", requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -180,7 +181,7 @@ router.post("/actions/:id/evaluate", async (req, res) => {
  * - Writes to executions table
  * - Writes to audit_logs
  */
-router.post("/actions/:id/execute", async (req, res) => {
+router.post("/actions/:id/execute", requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -410,7 +411,7 @@ router.post("/actions/:id/execute", async (req, res) => {
 // PUT /api/actions/:id/patch-for-test (DEV ONLY)
 
 router.put("/actions/:id/patch-for-test", async (req, res) => {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.ENABLE_TEST_ENDPOINTS !== "true") {
     return res.status(403).json({ error: "Test endpoint disabled in production" });
   }
 

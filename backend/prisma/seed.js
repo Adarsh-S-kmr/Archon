@@ -9,8 +9,8 @@ async function main() {
   // Test Users
   console.log("  → users_auth");
 
-  const operatorHash = await bcrypt.hash("password123", 10);
-  const approverHash = await bcrypt.hash("password123", 10);
+  const operatorHash = await bcrypt.hash(process.env.SEED_OPERATOR_PASS || "password123", 10);
+  const approverHash = await bcrypt.hash(process.env.SEED_APPROVER_PASS || "password123", 10);
 
   await prisma.user.upsert({
     where: { email: "operator@test.com" },

@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const prisma = require("../lib/prisma");
+const { requireAuth } = require("../middleware/auth");
 
 const router = Router();
 
@@ -171,7 +172,7 @@ router.get("/environment", async (req, res) => {
  * POST /api/environment/reset
  * Resets table row counts and backups to seed defaults for easy demo repeats.
  */
-router.post("/environment/reset", async (req, res) => {
+router.post("/environment/reset", requireAuth, async (req, res) => {
   try {
     for (const item of BASELINE_ENVIRONMENT) {
       await prisma.mockEnvironment.upsert({

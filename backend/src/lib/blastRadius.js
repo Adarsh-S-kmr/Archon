@@ -55,7 +55,7 @@ function estimateConditionSelectivity(condition) {
 
   const trimmed = condition.trim().toLowerCase();
 
-  if (/^(1\s*=\s*1|true|0\s*=\s*0|'a'\s*=\s*'a')$/i.test(trimmed)) {
+  if (/^(1\s*=\s*1|all|true|0\s*=\s*0|'a'\s*=\s*'a'|\*|1)$/i.test(trimmed)) {
     return 1.0;
   }
 

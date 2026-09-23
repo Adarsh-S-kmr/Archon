@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const prisma = require("../lib/prisma");
+const { requireAuth } = require("../middleware/auth");
 const { parseTaskToAction } = require("../lib/gemini");
 
 const router = Router();
@@ -97,11 +98,11 @@ router.get("/tasks", async (req, res) => {
  * 3. Creates a linked Action record with the LLM-generated payload
  * 4. Returns both
  */
-router.post("/tasks", async (req, res) => {
+router.post("/tasks", requireAuth, async (req, res) => {
   const { user_request } = req.body;
 
   // Validate input
-  if (!user_request || typeof user_request !== "string" || !user_request.trim()) {
+  if (!user_request || typeof user_request !== "string" || user_request.trim().length === 0 || user_request.length > 2000 || !user_request.trim()) {
     return res.status(400).json({
       error: "Missing or empty 'user_request' in request body",
     });

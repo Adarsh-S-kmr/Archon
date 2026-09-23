@@ -314,8 +314,8 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 | Role | Email | Password |
 |:-----|:------|:---------|
-| Operator | `operator@archon.dev` | `operator123` |
-| Approver | `admin@archon.dev` | `admin123` |
+| Operator | `operator@test.com` | `password123` |
+| Approver | `approver@test.com` | `password123` |
 
 ---
 

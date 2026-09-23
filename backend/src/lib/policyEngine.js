@@ -115,7 +115,7 @@ function evaluateUnboundedDestructive(action, policy) {
   const isTautology = /^(1\s*=\s*1|all|true|0\s*=\s*0|'a'\s*=\s*'a')$/i.test(conditionStr);
 
 
-  if (isDestructive && hasNoCondition || isTautology) {
+  if (isDestructive && (hasNoCondition || isTautology)) {
     return {
       policyId: policy.id,
       policyName: policy.name,
