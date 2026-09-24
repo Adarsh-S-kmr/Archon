@@ -20,6 +20,9 @@ const CONDITION_PATTERNS = [
   // Very selective — single-row or small-set lookups
   { regex: /\bid\s*=\s*/i, fraction: 0.001 },
   { regex: /\bemail\s*=\s*/i, fraction: 0.001 },
+  { regex: /\btoken\s*=\s*/i, fraction: 0.001 },
+  { regex: /\bord_id\s*=\s*/i, fraction: 0.001 },
+  { regex: /\bsession_id\s*=\s*/i, fraction: 0.001 },
   { regex: /\bLIMIT\s+\d+/i, fraction: 0.01 },
 
   // Medium selectivity — status/flag filters
